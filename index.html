@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 
@@ -9,29 +8,56 @@
 </head>
 
 <body>
-  <input type="file" id="fileInput" accept="image/*">
+  <input type="file" id="fileInput" capture="environment" accept="image/*">
+  <img id="imgPreview" width="300" src="" alt="img_preview" />
   <div id="result"></div>
   <script src="https://unpkg.com/@zxing/library@0.18.6/umd/index.min.js"></script>
 
   <script>
     const fileInput = document.getElementById('fileInput');
     const resultDiv = document.getElementById('result');
+    const imgPreview = document.getElementById('imgPreview');
 
-    fileInput.addEventListener('change', async (event) => {
+    fileInput.addEventListener("change", async (event) => {
       const file = event.target.files[0];
-
       if (file) {
         try {
+          const reader = new FileReader();
+
+          reader.onload = function (e) {
+            imgPreview.src = e.target.result;
+          };
+          reader.readAsDataURL(file);
+
           const arrayBuffer = await readFileAsArrayBuffer(file);
           const codeReader = new ZXing.BrowserQRCodeReader();
-          const result = await codeReader.decodeFromImage(undefined, URL.createObjectURL(file));
-          resultDiv.textContent = `QR Code content: ${result.text}`;
+          const img = new Image();
+          img.src = URL.createObjectURL(file);
+          img.onload = async () => {
+            const imageResizes = resizeImage(img, 480, 640);
+            imgPreview.src = imageResizes;
+   
+            const result = await codeReader.decodeFromImageElement(imgPreview);
+            resultDiv.textContent = `QR Code content: ${result.text}`;
+            URL.revokeObjectURL(img.src);
+
+          };
         } catch (error) {
-          console.error('Error reading QR code:', error);
-          resultDiv.textContent = 'Không tìm thấy QR code trong ảnh.';
+          console.error("Error reading QR code:", error);
+          resultDiv.textContent = "Không tìm thấy QR code trong ảnh.";
         }
+      } else {
+        imgPreview.src = "";
       }
     });
+    function resizeImage(image, width, height) {
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const context = canvas.getContext('2d');
+      context.drawImage(image, 0, 0, width, height);
+      return canvas.toDataURL();
+    }
 
     function readFileAsArrayBuffer(file) {
       return new Promise((resolve, reject) => {

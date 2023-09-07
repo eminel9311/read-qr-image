@@ -1,61 +1,61 @@
-<!-- <!DOCTYPE html>
-<html>
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Đọc QR Code từ ảnh</title>
+  </head>
 
-<head>
-  <title>Decode QR Code</title>
-  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
-</head>
+  <body>
+    <input type="file" id="fileInput" accept="image/*" />
+    <img id="imgPreview" width="300" src="" alt="img_preview" />
+    <div id="result"></div>
+    <script src="https://unpkg.com/@zxing/library@0.18.6/umd/index.min.js"></script>
 
-<body>
-  <input type="file" id="fileInput" accept="image/*">
-  <div id="result"></div>
+    <script>
+      const fileInput = document.getElementById("fileInput");
+      const resultDiv = document.getElementById("result");
+      const imgPreview = document.getElementById("imgPreview");
+      fileInput.addEventListener("change", async (event) => {
+        const file = event.target.files[0];
+        if (file) {
+          try {
+            const reader = new FileReader();
 
-  <script>
-    const fileInput = document.getElementById('fileInput');
-    const resultDiv = document.getElementById('result');
+            reader.onload = function (e) {
+              imgPreview.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
 
-    fileInput.addEventListener('change', async (event) => {
-      const file = event.target.files[0];
-
-      if (!file) {
-        return;
-      }
-
-      try {
-        const imageData = await getImageData(file);
-        const qrCode = jsQR.decodeQRFromImage(imageData.data, imageData.width, imageData.height);
-        console.log('qrCode', qrCode)
-        if (qrCode) {
-          resultDiv.textContent = `QR Code Data: ${qrCode.data}`;
+            const arrayBuffer = await readFileAsArrayBuffer(file);
+            const codeReader = new ZXing.BrowserQRCodeReader();
+            const img = new Image();
+            img.src = URL.createObjectURL(file);
+            img.onload = async () => {
+              const result = await codeReader.decodeFromImageElement(img);
+              resultDiv.textContent = `QR Code content: ${result.text}`;
+            };
+          } catch (error) {
+            console.error("Error reading QR code:", error);
+            resultDiv.textContent = "Không tìm thấy QR code trong ảnh.";
+          }
         } else {
-          resultDiv.textContent = 'Không tìm thấy QR code.';
+          imgPreview.src = "";
         }
-      } catch (error) {
-        console.error('Lỗi:', error);
-      }
-    });
-
-    function getImageData(file) {
-      return new Promise((resolve, reject) => {
-        const image = new Image();
-
-        image.onload = function () {
-          const canvas = document.createElement('canvas');
-          const ctx = canvas.getContext('2d');
-
-          canvas.width = image.width;
-          canvas.height = image.height;
-          ctx.drawImage(image, 0, 0);
-
-          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-          resolve(imageData);
-        };
-
-        image.onerror = reject;
-        image.src = URL.createObjectURL(file);
       });
-    }
-  </script>
-</body>
 
-</html> -->
+      function readFileAsArrayBuffer(file) {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            resolve(event.target.result);
+          };
+          reader.onerror = (error) => {
+            reject(error);
+          };
+          reader.readAsArrayBuffer(file);
+        });
+      }
+    </script>
+  </body>
+</html>
